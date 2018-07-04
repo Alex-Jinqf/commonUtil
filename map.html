@@ -1,0 +1,222 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"  
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">  
+<html xmlns="http://www.w3.org/1999/xhtml">  
+<head>  
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />  
+<title>Google Maps JavaScript API Example</title>  
+<script  
+    src=" http://ditu.google.cn/maps?file=api&amp;v=2&amp;"  
+    type="text/javascript"></script>  
+<script  
+    src="http://gmaps-utility-library.googlecode.com/svn/trunk/labeledmarker/release/src/labeledmarker.js"  
+    type="text/javascript">  
+      
+</script>  
+  
+<script src="http://gmaps-utility-library.googlecode.com/svn/trunk/markermanager/release/src/markermanager.js"  
+type="text/javascript">  
+</script>  
+<script type="text/javascript" src="../js/jquery.js"></script>  
+<script type="text/javascript">  
+  
+    /**  
+     * 这个例子演示了 Google Map API 的以下功能:  
+     *   * 地图平移  
+     *   * 事件处理（鼠标移动）  
+     *   * 和文档模型(DOM)交互  
+     *  
+     * @author haogang  
+     */  
+      
+  
+    var map; // 全局的地图对象  
+    var zoomDelta = 1; // 放大的级别  
+  
+    function marks() {  
+        var markerarr = new Array();  
+  
+        // 为所有标记创建指定阴影、图标尺寸灯的基础图标  
+        var baseIcon = new GIcon();  
+        baseIcon.iconSize = new GSize(20, 34);  
+        baseIcon.shadowSize = new GSize(37, 34);  
+        baseIcon.iconAnchor = new GPoint(9, 34);  
+        baseIcon.infoWindowAnchor = new GPoint(9, 2);  
+        baseIcon.infoShadowAnchor = new GPoint(18, 25);  
+  
+        // 创建信息窗口显示对应给定索引的字母的标记  
+        function createMarker(point) {  
+            // Create a lettered icon for this point using our icon class  
+            var letter = "abc";  
+            var letteredIcon = new GIcon(baseIcon);  
+            letteredIcon.image = "../images/aa.png";  
+  
+            // 设置 GMarkerOptions 对象  
+            markerOptions = {  
+                icon : letteredIcon  
+            };  
+            var marker = new GMarker(point, markerOptions);  
+  
+            GEvent.addListener(marker, "click", function() {  
+  
+                var longitude = marker.getLatLng().lat();  
+                var latitude = marker.getLatLng().lng();  
+                $.post("../security/abnormalview!getViewByTS.action", {  
+                    x : longitude,  
+                    y : latitude  
+                }, function(data, textStatus) {  
+                    // data 可以是 xmlDoc, jsonObj, html, text, 等等.  
+                        //this; // 这个Ajax请求的选项配置信息，请参考jQuery.get()说到的this  
+                        marker.openInfoWindowHtml("标记  <b>" + data.latitude  
+                                + "</b></br>内容<b>" + data.areaInfo.aret  
+                                + "</b>");  
+  
+                    }, "json");  
+  
+            });  
+            return marker;  
+        }  
+  
+        //得到xml文件中的地理信息经纬度  
+        GDownloadUrl("../xml/markers.xml", function(data, responseCode) {  
+            var xml = GXml.parse(data);  
+            var markers = xml.documentElement.getElementsByTagName("marker");  
+            for ( var i = 0; i < markers.length; i++) {  
+                var point = new GLatLng(parseFloat(markers[i]  
+                        .getAttribute("lat")), parseFloat(markers[i]  
+                        .getAttribute("lng")));  
+                //markerarr.push(new GMarker(point));  
+  
+                var marker = createMarker(point);  
+                //添加点击事件，连数据库  
+                //GEvent.addListener(marker, "click", function() {  
+                //var point = marker.getLatLng();  
+                //var lat = point.lat();  
+                //var lng = point.lng();  
+  
+                //发送请求  
+                //  $.post("../security/abnormalview.action", { x: lng, y: lat },  
+                //  function (data, textStatus){  
+                // data 可以是 xmlDoc, jsonObj, html, text, 等等.  
+                //  this; // 这个Ajax请求的选项配置信息，请参考jQuery.get()说到的this  
+                //  alert(data.result);  
+                //  var result =  $.parseJSON(data);   
+                //  }, "json");  
+  
+                //alert("您点击了图标。");  
+  
+                //var myHtml = "<b>#369</b><br/>"  
+                //map.openInfoWindowHtml(point, myHtml);  
+                //});  
+                //添加到数组中  
+                markerarr[i] = marker;  
+  
+            }  
+        });  
+        //alert("基站总数为"+markerarr.length);  
+        return markerarr;  
+    }  
+      
+    /**  
+     * 创建地图控件，并添加一些基本的控件  
+     */  
+    function load() {  
+  
+        if (GBrowserIsCompatible()) {  
+            var elemMap = document.getElementById('map');  
+            map = new GMap2(elemMap);  
+  
+            // 给地图添加内置的控件，分别为：  
+            // 平移及缩放控件（左上角）、比例尺控件（左下角）  
+            map.addControl(new GLargeMapControl());  
+            map.addControl(new GScaleControl());  
+  
+            // 将视图移到潍坊   
+            map.setCenter(new GLatLng(36.71299, 119.15698), 15);  
+  
+            var mgr = new GMarkerManager(map);  
+            mgr.addMarkers(marks(), 14);  
+            //刷新显示  
+            mgr.refresh();  
+  
+            //添加点信息  
+             GEvent.addListener(map, "moveend", function() {  
+                 alert("dddddddddddd");  
+                map.clearOverlays();   
+                 mgr.refresh();   
+                      var zoom = map.getZoom();  
+                      if(zoom>17){  
+                          alert("ssssss");  
+                          //map.clearOverlays();  
+                          //map.removeOverlay(this);   
+                          //var markers2 = new Array();  
+                          //lng经度   
+                          //lat纬度   
+                          var bounds = map.getBounds();  
+                           var southWest = bounds.getSouthWest();  
+                            var northEast = bounds.getNorthEast();  
+                            var leftlongitude = southWest.lng();  
+                            var rightlongitude = northEast.lng();  
+                            var letflatitude = southWest.lat();  
+                            var rightlatitude = northEast.lat();  
+                            //  
+                              
+                              
+                            $.post("../security/abnormalview!getMarkInfoByTs.action", { leftlongitude: leftlongitude, rightlongitude: rightlongitude,letflatitude: letflatitude,rightlatitude: rightlatitude },  
+                            function (data, textStatus){  
+                                // data 可以是 xmlDoc, jsonObj, html, text, 等等.  
+                                //this; // 这个Ajax请求的选项配置信息，请参考jQuery.get()说到的this  
+                                //alert(data.latitude);  
+                                //alert(data.areaInfo.aret);  
+                                //alert(data.)  
+                                //var list = data.lists;  
+                                  
+                                  
+                                // 为所有标记创建指定阴影、图标尺寸灯的基础图标  
+                                    var baseIcon = new GIcon();  
+                                    baseIcon.iconSize = new GSize(20, 34);  
+                                    baseIcon.shadowSize = new GSize(37, 34);  
+                                    baseIcon.iconAnchor = new GPoint(9, 34);  
+                                    baseIcon.infoWindowAnchor = new GPoint(9, 2);  
+                                    baseIcon.infoShadowAnchor = new GPoint(18, 25);  
+                                //循环添加                                
+                                for( var i = 0; i < data.length; i++) { // 可以遍历data数据  
+                                        var test = data[i];  
+                                        var lat = test.latitude;  
+                                        var lng = test.longitude;  
+                                        var point = new GLatLng(lat,lng);  
+                                        //得到信号强度  
+                                        var rxlevel = test.netinfo.rxlevel;  
+                                        if(rxlevel>-85){  
+                                            //根据信号强度来显示  
+                                          
+                                        var letteredIcon = new GIcon(baseIcon);  
+                                        letteredIcon.image = "../images/aa.png";  
+                                        markerOptions = {  
+                                            icon : letteredIcon  
+                                        };  
+                                        var marker = new GMarker(point, markerOptions);  
+                                         map.addOverlay(marker);  
+                                        }  
+                                        if(rxlevel>-95&&rxlevel<-85){  
+                                        }  
+                                        if(rxlevel<-95){  
+                                        }  
+                                          
+                                }  
+                          
+                                }, "json");  
+                          
+                }  
+            });  
+  
+        }  
+  
+    }  
+</script>  
+</head>  
+  
+<body onload="load()" onunload="GUnload()">  
+<div id="map" style="width: 800px; height: 500px"></div>  
+  
+</body>  
+</html>  
